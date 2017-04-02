@@ -87,7 +87,7 @@ class Decoder(nn.Module):
             nn.ReLU(True),
             # (filter_num) * 128 * 128
             nn.ConvTranspose2d(filter_num, channel_num, 4, 2, 1, bias=False),
-            nn.Tanh()
+            nn.Sigmoid()
             # channel_num * 256 * 256
         )
 
@@ -99,7 +99,7 @@ class Decoder(nn.Module):
         return x
 
 
-# Discriminator (Generator Image -> YES/NO real image)
+# Discriminator (Z -> REAL/FAKE image)
 class Discriminator(nn.Module):
     def __init__(self, z_dim):
         super(Discriminator, self).__init__()

@@ -1,32 +1,52 @@
+import random
 import os
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
+import torchvision.transforms as transforms
+
+import numpy as np
+import matplotlib.pyplot as plt
 
 from tqdm import tqdm
 from models import Encoder, Decoder, Discriminator, weight_init
 from torch.autograd import Variable
+from PIL import Image
 
 
 class gan_trainer:
     def __init__(self, z_dim=32, h_dim=128, filter_num=64, channel_num=3,
-                 lr=1e-3):
+                 lr=1e-3, cuda=False):
+        # Are we cuda'ing it
+        self.cuda = cuda
+
         # Encoder, decoder, discriminator
-        self.encoder = Encoder(
-            z_dim, h_dim=h_dim, filter_num=filter_num, channel_num=channel_num)
+        self.encoder = self.cudafy_(
+            Encoder(z_dim, h_dim=h_dim, filter_num=filter_num,
+                    channel_num=channel_num)
+        )
         self.encoder.apply(weight_init)
 
-        self.decoder = Decoder(
-            z_dim, filter_num=filter_num, channel_num=channel_num)
+        self.decoder = self.cudafy_(
+            Decoder(z_dim, filter_num=filter_num, channel_num=channel_num)
+        )
         self.decoder.apply(weight_init)
 
-        self.discrim = Discriminator(z_dim)
+        self.discrim = self.cudafy_(Discriminator(z_dim))
         self.discrim.apply(weight_init)
 
         # Optimizers
         self.optim_enc = optim.Adam(self.encoder.parameters(), lr=lr)
         self.optim_dec = optim.Adam(self.decoder.parameters(), lr=lr)
         self.optim_dis = optim.Adam(self.discrim.parameters(), lr=lr)
+
+        self.start_epoch = 0
+
+    def cudafy_(self, m):
+        if self.cuda:
+            if hasattr(m, 'cuda'):
+                return m.cuda()
+        return m
 
     def reset_gradients_(self):
         self.encoder.zero_grad()
@@ -36,14 +56,14 @@ class gan_trainer:
     def train(self, loader, current_epoch):
         for idx, features in enumerate(tqdm(loader)):
             features = features[0]
-            features = Variable(features)
+            features = Variable(self.cudafy_(features))
 
             """ Decoding Phase """
             z_sample = self.encoder(features)
             features_sample = self.decoder(z_sample)
 
-            dec_loss = F.binary_cross_entropy(
-                features_sample, features
+            dec_loss = self.cudafy_(
+                F.binary_cross_entropy(features_sample, features)
             )
             dec_loss.backward()
             self.optim_enc.step()
@@ -53,8 +73,9 @@ class gan_trainer:
             """ Regularization phase """
             # Discriminator
             z_fake = self.encoder(features)
-            z_real = Variable(torch.randn(
-                features.size(0), self.encoder.z_dim))
+            z_real = Variable(self.cudafy_(
+                torch.randn(features.size(0), self.encoder.z_dim)
+            ))
 
             discrim_fake = self.discrim(z_fake)
             discrim_real = self.discrim(z_real)
@@ -77,6 +98,67 @@ class gan_trainer:
             self.optim_enc.step()
             self.reset_gradients_()
 
+            tqdm.write(
+                "Epoch: {}\t"
+                "Decoder_Loss: {:.4f}\t"
+                "Discrim_loss: {:.4f}\t"
+                "Encoder_Loss: {:.4f}"
+                .format(
+                    current_epoch, dec_loss.data[0], discrim_loss.data[0], enc_loss.data[0],
+                )
+            )
+
+        # Gets a random image and encode it to
+        # get the latent space
+        self.generate(z_fake, features, current_epoch)
+
+    def generate(self, z, origin, e):
+        """
+        Generates an image from the z space
+
+        Args:
+            z: z space
+            origin: origin image
+            e: current epoch
+        """
+        if not os.path.exists('visualize/'):
+            os.makedirs('visualize/')
+
+        # Random image from sample
+        idx = random.randint(0, z.size(0) - 1)
+
+        # Takes z sample and converts it to range
+        # 0-255
+        decoded = self.decoder(z)
+
+        if self.cuda:
+            decoded = decoded.data.cpu().numpy()
+            origin = origin.data.cpu().numpy()
+        else:
+            decoded = decoded.data.numpy()
+            origin = origin.data.numpy()
+        dimg = self.tensor2pil(decoded[idx])
+        oimg = self.tensor2pil(origin[idx])
+
+        fig, axarr = plt.subplots(2, sharex=True)
+
+        axarr[0].imshow(oimg)
+        axarr[0].set_title('original')
+
+        axarr[1].imshow(dimg)
+        axarr[1].set_title('decoded')
+
+        plt.savefig('visualize/{}.png'.format(e))
+        plt.close(fig)
+
+    @staticmethod
+    def tensor2pil(t):
+        # Assuming t is between 0.0 - 1.0
+        t = t * 255
+        t = t.astype(np.uint8)
+        t = np.rollaxis(t, 0, 3)
+        return Image.fromarray(t, 'RGB')
+
     def save_(self, e, filename='gan.path.tar'):
         torch.save({
             'encoder': self.encoder.state_dict(),
@@ -84,6 +166,7 @@ class gan_trainer:
             'discrim': self.discrim.state_dict(),
             'epoch': e + 1
         }, 'epoch{}_{}'.format(e, filename))
+        print('Saved model state')
 
     def load_(self, filedir):
         if os.path.isfile(filedir):
@@ -92,6 +175,9 @@ class gan_trainer:
             self.encoder.load_state_dict(checkpoint['encoder'])
             self.decoder.load_state_dict(checkpoint['decoder'])
             self.discrim.load_state_dict(checkpoint['discrim'])
+            self.start_epoch = checkpoint['epoch']
+
+            print('Model state loaded')
 
         else:
             print('Cant find file')

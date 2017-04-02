@@ -88,5 +88,9 @@ ENV/
 # Rope project settings
 .ropeproject
 
-# PNG files
+# Etc files
 *.png
+*.path.tar
+
+# Etc folder
+visualize/
