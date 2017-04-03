@@ -166,10 +166,10 @@ class gan_trainer:
         fig, axarr = plt.subplots(2, sharex=True)
 
         axarr[0].imshow(oimg)
-        axarr[0].set_title('original')
+        axarr[0].set_title('original @ epoch: {}'.format(e))
 
         axarr[1].imshow(dimg)
-        axarr[1].set_title('decoded')
+        axarr[1].set_title('decoded @ epoch : {}'.format(e))
 
         plt.savefig('visualize/{}.png'.format(e))
         plt.close(fig)
