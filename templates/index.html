@@ -2,7 +2,6 @@
     <head>
         <title>Draw like Bob Ross</title>
         <script src="http://code.jquery.com/jquery-latest.js"></script>
-        <script type="text/javascript" src="{{ url_for('static', filename = 'js/sketch.min.js') }}"></script>
         <style type='text/css'>
         body { padding-top: 50px; font-family: "Nova Flat", sans-serif; color: #F22613; }
         h1, h2, h3, h4 { font-family: "Nova Flat", sans-serif ; font-weight: normal; color: ##19B5FE; }
@@ -80,9 +79,7 @@
             <br/>
             <h1>Input image</h1>
             <div class="draw" id="colors_div">
-                <div class="tools">
-                </div>
-                <canvas id="canvas_draw" width="256" height="256"></canvas>
+                <div id="paint-app"> </div>
             </div>
 
             <br/>
@@ -131,16 +128,7 @@
                     }
                 })
             }
-
-            $(function() {
-                $.each(['#8B4513', '#f00', '#ff0', '#0f0', '#006400', '#0ff', '#00f', '#000', '#fff'], function() {
-                $('#colors_div .tools').append("<a href='#canvas_draw' data-color='" + this + "' style='width: 10px; background: " + this + ";'></a> ");
-                });
-                $.each([3, 5, 10, 15], function() {
-                $('#colors_div .tools').append("<a href='#canvas_draw' data-size='" + this + "' style='background: #ccc'>" + this + "</a> ");
-                });
-                $('#canvas_draw').sketch();
-            });
         </script>
+       <script type="text/javascript" src="{{ url_for('static', filename = 'js/paint.min.js') }}"></script>
     </body>
 </html>
