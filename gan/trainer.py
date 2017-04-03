@@ -55,12 +55,15 @@ class gan_trainer:
         self.discrim.zero_grad()
 
     def train(self, loader, current_epoch):
-        for idx, features in enumerate(tqdm(loader)):
-            features = features[0]
+        for idx, features_ in enumerate(tqdm(loader)):
+            features = features_[0]
             features = Variable(self.cudafy_(features))
 
+            smoothen_features = features_[1]
+            smoothen_features = Variable(self.cudafy_(smoothen_features))
+
             """ Decoding Phase """
-            z_sample = self.encoder(features)
+            z_sample = self.encoder(smoothen_features)
             features_sample = self.decoder(z_sample)
 
             dec_loss = self.cudafy_(
@@ -73,7 +76,7 @@ class gan_trainer:
 
             """ Regularization phase """
             # Discriminator
-            z_fake = self.encoder(features)
+            z_fake = self.encoder(smoothen_features)
             z_real = Variable(self.cudafy_(
                 torch.randn(features.size(0), self.encoder.z_dim)
             ))
@@ -90,7 +93,7 @@ class gan_trainer:
             self.reset_gradients_()
 
             # Encoder
-            z_fake = self.encoder(features)
+            z_fake = self.encoder(smoothen_features)
             discrim_fake = self.discrim(z_fake)
 
             enc_loss = -torch.mean(torch.log(discrim_fake))

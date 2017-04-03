@@ -91,6 +91,7 @@ ENV/
 # Etc files
 *.png
 *.path.tar
+*.h5py
 
 # Etc folder
 visualize/

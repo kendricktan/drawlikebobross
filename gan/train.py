@@ -33,7 +33,7 @@ if __name__ == '__main__':
         trainer.load_(args.resume)
 
     # dataset
-    train_dataset = BobRossDataset('../images', transform=transformers)
+    train_dataset = BobRossDataset('../dataset/bobross.h5py', transform=transformers)
     train_loader = torch.utils.data.DataLoader(
         dataset=train_dataset, batch_size=8, shuffle=True,
         pin_memory=cuda, num_workers=4
