@@ -1,0 +1,112 @@
+<html>
+    <head>
+        <title>Draw like Bob Ross</title>
+        <script src="http://code.jquery.com/jquery-latest.js"></script>
+        <script type="text/javascript" src="{{ url_for('static', filename = 'js/sketch.min.js') }}"></script>
+
+        <style type='text/css'>
+        body { font-family: "Open Sans", sans-serif; color: #444; }
+        h1, h2, h3, h4 { font-family: Yellowtail; font-weight: normal; color: #06a; }
+
+        #wrapper { width: 800px; margin: 0 auto; }
+
+        header { text-align: center; }
+        header h1 { font-size: 46px; text-align: center; margin: 15px 10px; }
+
+        h1 { text-align: center; font-size: 26px; margin: 0 0 15px; }
+
+        canvas {
+            width: 256px;
+            height: 256px;
+            border: 3px solid #ccc;
+        }
+
+        pre.source {
+            background: #e5eeee;
+            padding: 10px 20px;
+            width: 760px;
+            overflow-x: auto;
+            border: 1px solid #acc;
+        }
+
+        code { background: #cff; }
+
+        .draw { text-align: center; }
+
+        .tools { margin-bottom: 10px; }
+        .tools a {
+            border: 1px solid black;
+            height: 30px;
+            line-height: 30px;
+            padding: 0 10px;
+            vertical-align: middle;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            color: black;
+            font-weight: bold;
+        }
+        </style>
+    </head>
+
+    <body>
+
+        <div>
+            <hr width="25%">
+            <h1>Input image</h1>
+            <hr width="25%">
+            <div class="draw" id="colors_div">
+                <div class="tools">
+                </div>
+                <canvas id="canvas_draw" width="256" height="256"></canvas>
+            </div>
+
+            <br/>
+            <div style="text-align: center">
+                <button onclick="bobrossify()">Bob Ross-sify</button>
+            </div>
+            <br/>
+
+            <hr width="25%">
+            <h1>Output image</h1>
+            <div style="text-align: center">
+            <img src="" id="bobrossifiedimg"/>
+            </div>
+            <hr width="25%">
+        </div>
+
+        <script type="text/javascript">
+            function bobrossify(){
+                event.preventDefault();
+
+                var canvas = document.getElementById("canvas_draw");
+                var img = canvas.toDataURL("image/png");
+                img = img.replace("data:image/png;base64", "");
+
+                $.ajax({
+                    type: "POST",
+                    url: "/gan",
+                    data: {
+                        'img': img
+                    },
+                    success: function(data){
+                        document.getElementById("bobrossifiedimg").src = "data:image/png;base64," + data;
+                    },
+                    error: function(data){
+                        console.log(data);
+                    }
+                })
+            }
+
+            $(function() {
+                $.each(['#8B4513', '#f00', '#ff0', '#0f0', '#0ff', '#00f', '#f0f', '#000', '#fff'], function() {
+                $('#colors_div .tools').append("<a href='#canvas_draw' data-color='" + this + "' style='width: 10px; background: " + this + ";'></a> ");
+                });
+                $.each([3, 5, 10, 15], function() {
+                $('#colors_div .tools').append("<a href='#canvas_draw' data-size='" + this + "' style='background: #ccc'>" + this + "</a> ");
+                });
+                $('#canvas_draw').sketch();
+            });
+        </script>
+    </body>
+</html>

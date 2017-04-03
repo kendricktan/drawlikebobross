@@ -9,9 +9,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from tqdm import tqdm
-from models import Encoder, Decoder, Discriminator, weight_init
 from torch.autograd import Variable
 from PIL import Image
+
+from .models import Encoder, Decoder, Discriminator, weight_init
 
 
 class gan_trainer:
@@ -110,11 +111,33 @@ class gan_trainer:
 
         # Gets a random image and encode it to
         # get the latent space
-        self.generate(z_fake, features, current_epoch)
+        self.visualize(z_fake, features, current_epoch)
 
-    def generate(self, z, origin, e):
+    def reconstruct(self, img, transformers=None):
+        if transformers is not None:
+            img = transformers(img)
+
+        img = Variable(self.cudafy_(img))
+        img = img.view(1, img.size(0), img.size(1), img.size(2))
+
+        z = self.encoder(img)
+        return self.generate(z)
+
+    def generate(self, z):
+        decoded = self.decoder(z)
+
+        if self.cuda:
+            decoded = decoded.data.cpu().numpy()
+        else:
+            decoded = decoded.data.numpy()
+
+        dimg = self.tensor2pil(decoded[0])
+
+        return dimg
+
+    def visualize(self, z, origin, e):
         """
-        Generates an image from the z space
+        Visualize the training progress, for sanity checks
 
         Args:
             z: z space

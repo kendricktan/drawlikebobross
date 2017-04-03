@@ -94,3 +94,4 @@ ENV/
 
 # Etc folder
 visualize/
+pretrained_models/

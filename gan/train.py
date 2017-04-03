@@ -3,8 +3,8 @@ import os
 import torch
 import torchvision.transforms as transforms
 
-from trainer import gan_trainer
-from loader import BobRossDataset
+from .trainer import gan_trainer
+from .loader import BobRossDataset
 
 # Params
 parser = argparse.ArgumentParser(description='GAN trainer')
@@ -15,24 +15,26 @@ parser.add_argument('--resume', default='', type=str)
 args, unknown = parser.parse_known_args()
 
 cuda = True if 'true' in args.cuda.lower() else False
+cuda = True
 
-# Data transformers & dataset
 transformers = transforms.Compose([
     transforms.ToTensor(),
 ])
 
-train_dataset = BobRossDataset('../images', transform=transformers)
-train_loader = torch.utils.data.DataLoader(
-    dataset=train_dataset, batch_size=8, shuffle=True,
-    pin_memory=cuda, num_workers=4
-)
-
 # Gan trainer
 trainer = gan_trainer(z_dim=32, h_dim=128, filter_num=64, channel_num=3, lr=args.lr, cuda=cuda)
 
-if args.resume:
-    trainer.load_(args.resume)
+if __name__ == '__main__':
+    if args.resume:
+        trainer.load_(args.resume)
 
-for e in range(trainer.start_epoch, args.epoch):
-    trainer.train(train_loader, e)
-    trainer.save_(e)
+    # dataset
+    train_dataset = BobRossDataset('../images', transform=transformers)
+    train_loader = torch.utils.data.DataLoader(
+        dataset=train_dataset, batch_size=8, shuffle=True,
+        pin_memory=cuda, num_workers=4
+    )
+
+    for e in range(trainer.start_epoch, args.epoch):
+        trainer.train(train_loader, e)
+        trainer.save_(e)
