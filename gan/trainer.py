@@ -12,7 +12,7 @@ from tqdm import tqdm
 from torch.autograd import Variable
 from PIL import Image
 
-from .models import Encoder, Decoder, Discriminator, weight_init
+from models import Encoder, Decoder, Discriminator, weight_init
 
 
 class gan_trainer:

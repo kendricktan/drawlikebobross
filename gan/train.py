@@ -1,10 +1,14 @@
-import argparse
 import os
+import sys
+import argparse
 import torch
 import torchvision.transforms as transforms
 
-from .trainer import gan_trainer
-from .loader import BobRossDataset
+sys.path.append(os.path.dirname(__file__))
+
+from trainer import gan_trainer
+from loader import BobRossDataset
+
 
 # Params
 parser = argparse.ArgumentParser(description='GAN trainer')
