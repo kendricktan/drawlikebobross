@@ -3,10 +3,9 @@
         <title>Draw like Bob Ross</title>
         <script src="http://code.jquery.com/jquery-latest.js"></script>
         <script type="text/javascript" src="{{ url_for('static', filename = 'js/sketch.min.js') }}"></script>
-
         <style type='text/css'>
-        body { font-family: "Open Sans", sans-serif; color: #444; }
-        h1, h2, h3, h4 { font-family: Yellowtail; font-weight: normal; color: #06a; }
+        body { padding-top: 50px; font-family: "Nova Flat", sans-serif; color: #F22613; }
+        h1, h2, h3, h4 { font-family: "Nova Flat", sans-serif ; font-weight: normal; color: ##19B5FE; }
 
         #wrapper { width: 800px; margin: 0 auto; }
 
@@ -29,9 +28,28 @@
             border: 1px solid #acc;
         }
 
+        a {
+            text-decoration: none;
+            color: #6C7A89;
+        }
+
         code { background: #cff; }
 
         .draw { text-align: center; }
+
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            width: 33%;
+        }
 
         .tools { margin-bottom: 10px; }
         .tools a {
@@ -50,11 +68,17 @@
     </head>
 
     <body>
+        <a href="https://github.com/kendricktan/drawlikebobross"><img style="position: absolute; top: 0; left: 0; border: 0;" src="https://camo.githubusercontent.com/121cd7cbdc3e4855075ea8b558508b91ac463ac2/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f6c6566745f677265656e5f3030373230302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_left_green_007200.png"></a>
 
         <div>
-            <hr width="25%">
+            <hr width="75%">
+            <div style="text-align: center">
+                <img align="middle" width=150 src="http://www.bobrossfacts.com/images/Bob_Ross_afro.gif"/> <h1>Bob Rossifier v0.1</h1>
+            </div>
+            <hr width="75%">
+
+            <br/>
             <h1>Input image</h1>
-            <hr width="25%">
             <div class="draw" id="colors_div">
                 <div class="tools">
                 </div>
@@ -63,17 +87,27 @@
 
             <br/>
             <div style="text-align: center">
-                <button onclick="bobrossify()">Bob Ross-sify</button>
+                <button class="button" onclick="bobrossify()">Bob Ross-sify</button>
             </div>
             <br/>
 
-            <hr width="25%">
             <h1>Output image</h1>
             <div style="text-align: center">
-            <img src="" id="bobrossifiedimg"/>
+                <img height=256 src="" id="bobrossifiedimg"/>
             </div>
-            <hr width="25%">
         </div>
+
+        <br/>
+        <hr width="75%"/>
+        <br/>
+        <footer>
+            <div style="text-align: center;">
+                <a href="https://kendricktan.github.io">kendricktan.github.io</a>
+            </div>
+        </footer>
+        <br/>
+        <hr width="75%"/>
+        <br/>
 
         <script type="text/javascript">
             function bobrossify(){
@@ -99,7 +133,7 @@
             }
 
             $(function() {
-                $.each(['#8B4513', '#f00', '#ff0', '#0f0', '#0ff', '#00f', '#f0f', '#000', '#fff'], function() {
+                $.each(['#8B4513', '#f00', '#ff0', '#0f0', '#006400', '#0ff', '#00f', '#000', '#fff'], function() {
                 $('#colors_div .tools').append("<a href='#canvas_draw' data-color='" + this + "' style='width: 10px; background: " + this + ";'></a> ");
                 });
                 $.each([3, 5, 10, 15], function() {
