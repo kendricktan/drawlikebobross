@@ -99,26 +99,21 @@ class Decoder(nn.Module):
         return x
 
 
-# Discriminator (Image -> REAL/FAKE image)
+# Discriminator (Z -> REAL/FAKE image)
 class Discriminator(nn.Module):
-    def __init__(self, z_dim, filter_num=64, channel_num=3):
+    def __init__(self, z_dim):
         super(Discriminator, self).__init__()
-        encoder = Encoder(z_dim, 1, filter_num=filter_num, channel_num=channel_num)
 
-        self.conv_t = encoder.conv
-        self.fc1 = encoder.fc
-        self.fc2 = nn.Sequential(
-            nn.Linear(z_dim, 64),
+        self.fc = nn.Sequential(
+            # x.size(0) * -1
+            nn.Linear(z_dim, z_dim),
             nn.ReLU(),
-            nn.Linear(64, 1),
+            nn.Linear(z_dim, 1),
             nn.Sigmoid()
         )
 
     def forward(self, x):
-        x = self.conv_t(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc1(x)
-        x = self.fc2(x)
+        x = self.fc(x)
         return x
 
 

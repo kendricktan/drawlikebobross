@@ -26,32 +26,28 @@ class gan_trainer:
         # Are we cuda'ing it
         self.cuda = cuda
 
-        # Generators
-        # G(X) -> Y :: Image -> Smoothen
-        # G(Y) -> X :: Smoothen -> Image
-        self.g_xy = self.cudafy_(
-            Generator(z_dim, h_dim=h_dim, filter_num=filter_num,
+        # Encoder, decoder, discriminator
+        self.encoder = self.cudafy_(
+            Encoder(z_dim, h_dim=h_dim, filter_num=filter_num,
                     channel_num=channel_num)
         )
-        self.g_xy.apply(weight_init)
+        self.encoder.apply(weight_init)
 
-        self.g_yx = self.cudafy_(
-            Generator(z_dim, filter_num=filter_num, channel_num=channel_num)
+        self.decoder = self.cudafy_(
+            Decoder(z_dim, filter_num=filter_num, channel_num=channel_num)
         )
-        self.g_yx.apply(weight_init)
+        self.decoder.apply(weight_init)
 
-        self.d_x = self.cudafy_(Discriminator(z_dim, filter_num, channel_num))
-        self.d_x.apply(weight_init)
-
-        self.d_y = self.cudafy_(Discriminator(z_dim, filter_num, channel_num))
-        self.d_y.apply(weight_init)
+        self.discrim = self.cudafy_(Discriminator(z_dim))
+        self.discrim.apply(weight_init)
 
         # Optimizers
-        self.g_params = list(self.g_xy.parameters()) + list(self.g_yx.parameters())
-        self.d_params = list(self.d_x.parameters()) + list(self.d_y.parameters())
-
-        self.g_solver = optim.SGD(self.g_params, lr=lr, momentum=0.25)
-        self.d_solver = optim.SGD(self.d_params, lr=lr, momentum=0.25)
+        generator_params = list(self.encoder.parameters()) + \
+            list(self.decoder.parameters())
+        self.optim_enc = optim.Adam(self.encoder.parameters(), lr=lr)
+        self.optim_dec = optim.Adam(self.decoder.parameters(), lr=lr)
+        self.optim_dis = optim.Adam(self.discrim.parameters(), lr=lr)
+        self.optim_gen = optim.Adam(generator_params, lr=lr)
 
         self.start_epoch = 0
 
@@ -62,10 +58,9 @@ class gan_trainer:
         return m
 
     def reset_gradients_(self):
-        self.g_xy.zero_grad()
-        self.g_yx.zero_grad()
-        self.d_x.zero_grad()
-        self.d_y.zero_grad()
+        self.encoder.zero_grad()
+        self.decoder.zero_grad()
+        self.discrim.zero_grad()
 
     def train(self, loader, current_epoch):
         for idx, features_ in enumerate(tqdm(loader)):
@@ -75,70 +70,67 @@ class gan_trainer:
             smoothen_features = features_[1]
             smoothen_features = Variable(self.cudafy_(smoothen_features))
 
-            # Generators
-            # G(X) -> Y :: Image -> Smoothen
-            # G(Y) -> X :: Smoothen -> Image
-            # Features X = features
-            # Features Y = Smoothen
+            """ Decoding Phase """
+            z_sample = self.encoder(smoothen_features)
+            features_sample = self.decoder(z_sample)
 
-            # Discriminator Y
-            gen_features_y = self.g_xy(features)
-            discrim_y_real = self.d_y(smoothen_features)
-            discrim_y_fake = self.d_y(gen_features_y)
-
-            loss_d_y = -torch.mean(log(discrim_y_real) + log(1 - discrim_y_fake))
-
-            # Discriminator X
-            gen_features_x = self.g_yx(smoothen_features)
-            discrim_x_real = self.d_x(features)
-            discrim_x_fake = self.d_x(gen_features_x)
-
-            loss_d_x = -torch.mean(log(discrim_x_real) + log(1 - discrim_x_fake))
-
-            # Total discriminator loss
-            discrim_loss = loss_d_y + loss_d_x
-            discrim_loss.backward()
-            self.d_solver.step()
+            dec_loss = self.cudafy_(
+                F.binary_cross_entropy(features_sample, features)
+            )
+            dec_loss.backward()
+            self.optim_enc.step()
+            self.optim_dec.step()
             self.reset_gradients_()
 
-            # Generator(X) -> Y
-            # G(X) -> Y :: Image -> Smoothen
-            gen_features_xy = self.g_xy(features)
-            discrim_y_fake = self.d_y(gen_features_xy)
-            gen_features_xyx = self.g_yx(gen_features_xy)
+            """ Regularization phase """
+            # Discriminator
+            z_fake = self.encoder(smoothen_features)
+            z_real = Variable(self.cudafy_(
+                torch.randn(features.size(0), self.encoder.z_dim)
+            ))
 
-            loss_adv_y = -torch.mean(log(discrim_y_fake))
-            loss_recons_x = torch.mean(torch.sum((features - gen_features_xyx) ** 2, 1))
-            loss_g_xy = loss_adv_y + loss_recons_x
+            discrim_fake = self.discrim(z_fake)
+            discrim_real = self.discrim(z_real)
 
-            # Generator(Y) -> X
-            # G(Y) -> X :: Smoothen -> Image
-            gen_features_yx = self.g_yx(smoothen_features)
-            discrim_x_fake = self.d_x(gen_features_yx)
-            gen_features_yxy = self.g_xy(gen_features_yx)
+            discrim_loss = - \
+                torch.mean(torch.log(discrim_real) +
+                           torch.log(1 - discrim_fake))
+            discrim_loss.backward()
 
-            loss_adv_x = -torch.mean(log(discrim_x_fake))
-            loss_recons_y = torch.mean(torch.sum((smoothen_features - gen_features_yxy) ** 2, 1))
-            loss_g_yx = loss_adv_x + loss_recons_y
+            self.optim_dis.step()
+            self.reset_gradients_()
 
-            # Total Generator loss
-            gen_loss = loss_g_xy + loss_g_yx
+            # Encoder
+            z_fake = self.encoder(smoothen_features)
+            discrim_fake = self.discrim(z_fake)
+
+            enc_loss = -torch.mean(torch.log(discrim_fake))
+            enc_loss.backward()
+
+            self.optim_enc.step()
+            self.reset_gradients_()
+
+            # Generator (Encoder + Decoder)
+            gen_ = self.decoder(self.encoder(smoothen_features))
+            gen_loss = torch.mean(torch.sum((gen_ - features) ** 2, 1))
             gen_loss.backward()
-            self.g_solver.step()
+            self.optim_gen.step()
             self.reset_gradients_()
 
             tqdm.write(
                 "Epoch: {}\t"
-                "D loss: {:.4f}\t"
-                "G loss: {:.4f}"
+                "Decoder_Loss: {:.4f}\t"
+                "Discrim_loss: {:.4f}\t"
+                "Encoder_Loss: {:.4f}\t"
+                "Generator Loss: {:.4f}"
                 .format(
-                    current_epoch, discrim_loss.data[0], gen_loss.data[0]
+                    current_epoch, dec_loss.data[0], discrim_loss.data[0], enc_loss.data[0], gen_loss.data[0]
                 )
             )
 
         # Gets a random image and encode it to
         # get the latent space
-        self.visualize(features, current_epoch)
+        self.visualize(z_fake, features, current_epoch)
 
     def reconstruct(self, img, transformers=None):
         if transformers is not None:
@@ -147,34 +139,48 @@ class gan_trainer:
         img = Variable(self.cudafy_(img))
         img = img.view(1, img.size(0), img.size(1), img.size(2))
 
-        return self.g_yx(img)
+        z = self.encoder(img)
+        return self.generate(z)
 
-    def visualize(self, smoothen, e):
+    def generate(self, z):
+        decoded = self.decoder(z)
+
+        if self.cuda:
+            decoded = decoded.data.cpu().numpy()
+        else:
+            decoded = decoded.data.numpy()
+
+        dimg = self.tensor2pil(decoded[0])
+
+        return dimg
+
+    def visualize(self, z, origin, e):
         """
         Visualize the training progress, for sanity checks
 
         Args:
-            smoothen: smoothen image
+            z: z space
+            origin: origin image
             e: current epoch
         """
         if not os.path.exists('visualize/'):
             os.makedirs('visualize/')
 
         # Random image from sample
-        idx = random.randint(0, smoothen.size(0) - 1)
+        idx = random.randint(0, z.size(0) - 1)
 
         # Takes z sample and converts it to range
         # 0-255
-        decoded = self.g_yx(smoothen)
+        decoded = self.decoder(z)
 
         if self.cuda:
             decoded = decoded.data.cpu().numpy()
-            smoothen = smoothen.data.cpu().numpy()
+            origin = origin.data.cpu().numpy()
         else:
             decoded = decoded.data.numpy()
-            smoothen = smoothen.data.numpy()
+            origin = origin.data.numpy()
         dimg = self.tensor2pil(decoded[idx])
-        oimg = self.tensor2pil(smoothen[idx])
+        oimg = self.tensor2pil(origin[idx])
 
         fig, axarr = plt.subplots(2, sharex=True)
 
@@ -197,10 +203,9 @@ class gan_trainer:
 
     def save_(self, e, filename='gan.path.tar'):
         torch.save({
-            'g_xy': self.g_xy.state_dict(),
-            'g_yx': self.g_yx.state_dict(),
-            'd_x': self.d_x.state_dict(),
-            'd_y': self.d_y.state_dict(),
+            'encoder': self.encoder.state_dict(),
+            'decoder': self.decoder.state_dict(),
+            'discrim': self.discrim.state_dict(),
             'epoch': e + 1
         }, 'epoch{}_{}'.format(e, filename))
         print('Saved model state')
@@ -209,10 +214,9 @@ class gan_trainer:
         if os.path.isfile(filedir):
             checkpoint = torch.load(filedir)
 
-            self.g_xy.load_state_dict(checkpoint['g_xy'])
-            self.g_yx.load_state_dict(checkpoint['g_yx'])
-            self.d_x.load_state_dict(checkpoint['d_x'])
-            self.d_y.load_state_dict(checkpoint['d_y'])
+            self.encoder.load_state_dict(checkpoint['encoder'])
+            self.decoder.load_state_dict(checkpoint['decoder'])
+            self.discrim.load_state_dict(checkpoint['discrim'])
             self.start_epoch = checkpoint['epoch']
 
             print('Model state loaded')
