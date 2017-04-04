@@ -6,6 +6,8 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 
 import numpy as np
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 
 from tqdm import tqdm
@@ -184,8 +186,7 @@ class gan_trainer:
         axarr[1].imshow(dimg)
         axarr[1].set_title('decoded @ epoch : {}'.format(e))
 
-        plt.savefig('visualize/{}.png'.format(e))
-        plt.close(fig)
+        fig.savefig('visualize/{}.png'.format(e))
 
     @staticmethod
     def tensor2pil(t):
