@@ -13,7 +13,7 @@ from loader import BobRossDataset
 # Params
 parser = argparse.ArgumentParser(description='GAN trainer')
 parser.add_argument('--epoch', default=500, type=int)
-parser.add_argument('--lr', default=1e-3, type=float)
+parser.add_argument('--lr', default=0.001, type=float)
 parser.add_argument('--cuda', default='true', type=str)
 parser.add_argument('--resume', default='', type=str)
 args, unknown = parser.parse_known_args()
@@ -26,7 +26,7 @@ transformers = transforms.Compose([
 ])
 
 # Gan trainer
-trainer = gan_trainer(z_dim=8, h_dim=32, filter_num=32, channel_num=3, lr=args.lr, cuda=cuda)
+trainer = gan_trainer(z_dim=8, h_dim=128, filter_num=64, channel_num=3, lr=args.lr, cuda=cuda)
 
 if __name__ == '__main__':
     if args.resume:

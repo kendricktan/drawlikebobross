@@ -65,7 +65,7 @@ class Encoder(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, z_dim, filter_num=64, channel_num=3):
         super(Decoder, self).__init__()
-        self.main = nn.Sequential(
+        self.conv = nn.Sequential(
             # z -> upsampling -> image
             nn.ConvTranspose2d(z_dim, filter_num * 8, 8, 1, 0, bias=False),
             nn.BatchNorm2d(filter_num * 8),
@@ -95,23 +95,50 @@ class Decoder(nn.Module):
 
     def forward(self, x):
         x = x.view(x.size(0), -1, 1, 1)
-        x = self.main(x)
+        x = self.conv(x)
         return x
 
 
-# Discriminator (Z -> REAL/FAKE image)
+# Discriminator (Image -> REAL/FAKE image)
 class Discriminator(nn.Module):
-    def __init__(self, z_dim):
+    def __init__(self, z_dim, filter_num=64, channel_num=3):
         super(Discriminator, self).__init__()
+        encoder = Encoder(z_dim, 1, filter_num=filter_num, channel_num=channel_num)
 
-        self.fc = nn.Sequential(
-            # x.size(0) * -1
-            nn.Linear(z_dim, z_dim),
+        self.conv_t = encoder.conv
+        self.fc1 = encoder.fc
+        self.fc2 = nn.Sequential(
+            nn.Linear(z_dim, 64),
             nn.ReLU(),
-            nn.Linear(z_dim, 1),
+            nn.Linear(64, 1),
             nn.Sigmoid()
         )
 
     def forward(self, x):
+        x = self.conv_t(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc1(x)
+        x = self.fc2(x)
+        return x
+
+
+# G(A) = B
+class Generator(nn.Module):
+    def __init__(self, z_dim, h_dim=128, filter_num=64, channel_num=3):
+        super(Generator, self).__init__()
+
+        encoder = Encoder(z_dim, h_dim, filter_num, channel_num)
+        decoder = Decoder(z_dim, filter_num, channel_num)
+
+        self.conv = encoder.conv
+        self.fc = encoder.fc
+
+        self.conv_t = decoder.conv
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = x.view(x.size(0), -1)
         x = self.fc(x)
+        x = x.view(x.size(0), -1, 1, 1)
+        x = self.conv_t(x)
         return x
