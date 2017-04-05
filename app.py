@@ -6,7 +6,7 @@ import numpy as np
 from io import BytesIO
 from PIL import Image
 from flask import Flask, render_template, request, send_file
-from gan.train import trainer, transformers
+from aae.train import trainer, transformers
 
 # Parse args
 parser = argparse.ArgumentParser(description='GAN trainer')

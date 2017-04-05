@@ -22,7 +22,7 @@ python preprocess.py
 
 ## 3. Train data
 ```
-cd gan
+cd aae
 python train.py
 ```
 
