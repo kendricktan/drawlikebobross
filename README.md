@@ -1,7 +1,13 @@
-# drawlikebobross
-Draw like Bob Ross using the power of GANs!
+# Draw like Bob Ross using the power of Neural Networks!
 
-# Install dependecies
+![Sample](https://i.imgur.com/aU8ySZN.png)
+
+## Learning process
+
+![webm](https://thumbs.gfycat.com/DefenselessEminentKookaburra-size_restricted.gif)
+
+# Getting started
+## Install dependecies
 ### Requires python3.x
 ```
 pip install -r requirements.txt
@@ -9,7 +15,12 @@ pip install http://download.pytorch.org/whl/cu75/torch-0.1.11.post5-cp36-cp36m-l
 pip install torchvision
 ```
 
-# Steps
+# Run server (using pretrained model)
+```
+python app.py --resume pretrained_models/450epoch_aae.tar
+```
+
+# Run server (from scatch)
 ## 1. Scrapping data 
 ```
 ./scrapper.sh
