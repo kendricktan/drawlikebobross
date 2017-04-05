@@ -95,8 +95,8 @@ class gan_trainer:
             discrim_real = self.discrim(z_real)
 
             discrim_loss = - \
-                torch.mean(torch.log(discrim_real) +
-                           torch.log(1 - discrim_fake))
+                torch.mean(log(discrim_real) +
+                           log(1 - discrim_fake))
             discrim_loss.backward()
 
             self.optim_dis.step()
@@ -106,7 +106,7 @@ class gan_trainer:
             z_fake = self.encoder(smoothen_features)
             discrim_fake = self.discrim(z_fake)
 
-            enc_loss = -torch.mean(torch.log(discrim_fake))
+            enc_loss = -torch.mean(log(discrim_fake))
             enc_loss.backward()
 
             self.optim_enc.step()

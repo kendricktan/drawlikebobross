@@ -1,6 +1,6 @@
 # Draw like Bob Ross using the power of Neural Networks!
 
-![Sample](https://i.imgur.com/aU8ySZN.png)
+![Sample](https://i.imgur.com/9rdXfdM.png)
 
 ## Learning Process Visualization
 
