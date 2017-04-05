@@ -1,4 +1,4 @@
-# Draw like Bob Ross using the power of Neural Networks!
+# Draw like Bob Ross using the power of Neural Networks! (+ Pytorch)
 
 ![Sample](https://i.imgur.com/9rdXfdM.png)
 
