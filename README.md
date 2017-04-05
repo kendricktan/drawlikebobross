@@ -2,7 +2,7 @@
 
 ![Sample](https://i.imgur.com/aU8ySZN.png)
 
-## Learning process
+## Learning Process Visualization
 
 ![webm](https://thumbs.gfycat.com/DefenselessEminentKookaburra-size_restricted.gif)
 
@@ -19,6 +19,8 @@ pip install torchvision
 ```
 python app.py --resume pretrained_models/450epoch_aae.tar
 ```
+
+Navigate to 127.0.0.1:5000
 
 # Run server (from scatch)
 ## 1. Scrapping data 
@@ -42,3 +44,5 @@ python train.py
 cd PROJECT_ROOT
 python app.py --resume TRAINEDMODEL.path.tar
 ```
+
+Navigate to 127.0.0.1:5000
